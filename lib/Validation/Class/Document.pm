@@ -79,7 +79,7 @@ sub document_validates { goto &validate_document } sub validate_document {
             $key    =~ s/$token/$regex/g;
 
             $token  = '\\\\\\*';
-            $regex  = '\w+';
+            $regex  = '[^\.]+';
             $key    =~ s/$token/$regex/g;
 
         $document->{$key} = $value;
@@ -154,7 +154,7 @@ Validation::Class::Document - Data Validation for Hierarchical Data
 
 =head1 VERSION
 
-version 0.000007
+version 0.000008
 
 =head1 SYNOPSIS
 
