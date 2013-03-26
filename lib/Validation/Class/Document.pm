@@ -167,7 +167,7 @@ Validation::Class::Document - Data Validation for Hierarchical Data
 
 =head1 VERSION
 
-version 0.000009
+version 0.000010
 
 =head1 SYNOPSIS
 
@@ -248,18 +248,7 @@ application in key/value form and especially in regards to the increasing demand
 for communication between applications, serializing and transmitting structured
 data over a network connection.
 
-=head1 METHODS
-
-=head2 validate_document
-
-The validate_document method (or document_validates) is used to validate the
-specified hierarchical data against the specified document declaration. This is
-extremely valuable for validating serialized messages passed between machines.
-This method requires two arguments, the name of the document declaration to be
-used, and the data to be validated which should be submitted in the form of a
-hashref.
-
-=head1 DOCUMENT NOTATION
+=head1 OVERVIEW
 
 Validation::Class::Document exports the document (or dom) keyword which allows
 you to pre-define/configure your path matching rules for your data structure.
@@ -285,25 +274,25 @@ are a few general use-cases:
 
     # select name -> first_name/last_name to validate against the string rules
     document 'foobar' =>
-      {'name.first_name' => 'string', 'name.last_name' => 'string'};
+        {'name.first_name' => 'string', 'name.last_name' => 'string'};
 
     # or
     document 'foobar' =>
-      {'name.*_name' => 'string'};
+        {'name.*_name' => 'string'};
 
     # select each element in friends to validate against the string rules
     document 'foobar' =>
         { 'friends.@' => 'string' };
 
-    # or select an element within a hashref within in friends to validate
+    # or select an element of a hashref in each element in friends to validate
     document 'foobar' =>
         { 'friends.@.name' => 'string' };
 
-The document declaration keys should be follow the aforementioned document
-notation scheme and the values should be strings which correspond to the names
+The document declaration's keys should follow the aforementioned document
+notation scheme and it's values should be strings which correspond to the names
 of fields (or other document declarations) that will be used to preform the
-data validation. It is possible to combine document declarations to validation
-hierarchical data that contains data strucutres matching one or more document
+data validation. It is possible to combine document declarations to validate
+hierarchical data that contains data structures matching one or more document
 patterns. The following is an example of what that might look like.
 
     package MyApp::Person;
@@ -342,6 +331,17 @@ patterns. The following is an example of what that might look like.
     unless ($person->validate_document(person => $data)) {
         warn $person->errors_to_string if $person->error_count;
     }
+
+=head1 METHODS
+
+=head2 validate_document
+
+The validate_document method (or document_validates) is used to validate the
+specified hierarchical data against the specified document declaration. This is
+extremely valuable for validating serialized messages passed between machines.
+This method requires two arguments, the name of the document declaration to be
+used, and the data to be validated which should be submitted in the form of a
+hashref.
 
 =head1 AUTHOR
 
