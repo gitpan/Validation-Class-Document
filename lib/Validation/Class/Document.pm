@@ -17,6 +17,8 @@ Validation::Class::Exporter->apply_spec(
     routines => ['doc', 'document', 'validate_document', 'document_validates'],
 );
 
+
+
 sub doc { goto &document } sub document {
 
     my $package = shift if @_ == 3;
@@ -43,18 +45,20 @@ sub doc { goto &document } sub document {
 
 };
 
+
 sub document_validates { goto &validate_document } sub validate_document {
 
     my ($self, $name, $data) = @_;
 
-    my $proto  = $self->prototype;
-    my $fields = { map {$_ => 1} ($proto->fields->keys) };
+    my $proto     = $self->prototype;
+
+    my $fields    = { map {$_ => 1} ($proto->fields->keys) };
+
+    my $documents = $proto->settings->get('documents');
 
     croak "Please supply a registered document name to validate against"
         unless $name
     ;
-
-    my $documents = $proto->settings->get('documents');
 
     croak "The ($name) document is not registered and cannot be validated against"
         unless $name && $documents->has($name)
@@ -68,17 +72,27 @@ sub document_validates { goto &validate_document } sub validate_document {
 
     for my  $key (keys %{$document}) {
 
+        $document->{$key} = $documents->get($document->{$key}) if
+            $document->{$key} && $documents->has($document->{$key}) &&
+            ! $proto->fields->has($document->{$key})
+        ;
+
+    }
+
+    $document = flatten $document;
+
+    for my  $key (keys %{$document}) {
+
         my  $value = delete $document->{$key};
-            $key   = quotemeta($key);
 
         my  $token;
         my  $regex;
 
-            $token  = '\\\.\\\@';
-            $regex  = '\:\d+';
+            $token  = '\.\@';
+            $regex  = ':\d+';
             $key    =~ s/$token/$regex/g;
 
-            $token  = '\\\\\\*';
+            $token  = '\*';
             $regex  = '[^\.]+';
             $key    =~ s/$token/$regex/g;
 
@@ -141,7 +155,6 @@ sub document_validates { goto &validate_document } sub validate_document {
 
 }
 
-
 1;
 
 __END__
@@ -154,7 +167,7 @@ Validation::Class::Document - Data Validation for Hierarchical Data
 
 =head1 VERSION
 
-version 0.000008
+version 0.000009
 
 =head1 SYNOPSIS
 
@@ -234,6 +247,101 @@ L<MooseX::Validation::Doctypes>. Gone are the days of data submitted to an
 application in key/value form and especially in regards to the increasing demand
 for communication between applications, serializing and transmitting structured
 data over a network connection.
+
+=head1 METHODS
+
+=head2 validate_document
+
+The validate_document method (or document_validates) is used to validate the
+specified hierarchical data against the specified document declaration. This is
+extremely valuable for validating serialized messages passed between machines.
+This method requires two arguments, the name of the document declaration to be
+used, and the data to be validated which should be submitted in the form of a
+hashref.
+
+=head1 DOCUMENT NOTATION
+
+Validation::Class::Document exports the document (or dom) keyword which allows
+you to pre-define/configure your path matching rules for your data structure.
+The "path matching rules", which is actually a custom object notation, referred
+to as the document notation, can be thought of as a kind-of simplified regular
+expression which is executed against the flattened data structure. The following
+are a few general use-cases:
+
+    # given the data structure
+    {
+        "id": "1234-A",
+        "name": {
+            "first_name" : "Bob",
+            "last_name"  : "Smith",
+         },
+        "title": "CIO",
+        "friends" : [],
+    }
+
+    # select id to validate against the string rules
+    document 'foobar' =>
+        { 'id' => 'string' };
+
+    # select name -> first_name/last_name to validate against the string rules
+    document 'foobar' =>
+      {'name.first_name' => 'string', 'name.last_name' => 'string'};
+
+    # or
+    document 'foobar' =>
+      {'name.*_name' => 'string'};
+
+    # select each element in friends to validate against the string rules
+    document 'foobar' =>
+        { 'friends.@' => 'string' };
+
+    # or select an element within a hashref within in friends to validate
+    document 'foobar' =>
+        { 'friends.@.name' => 'string' };
+
+The document declaration keys should be follow the aforementioned document
+notation scheme and the values should be strings which correspond to the names
+of fields (or other document declarations) that will be used to preform the
+data validation. It is possible to combine document declarations to validation
+hierarchical data that contains data strucutres matching one or more document
+patterns. The following is an example of what that might look like.
+
+    package MyApp::Person;
+
+    use Validation::Class::Document;
+
+    field  'name' => {
+        mixin      => [':str'],
+        pattern    => qr/^[A-Za-z ]+$/,
+        max_length => 20,
+    };
+
+    document 'friend' => {
+        'name' => 'name'
+    };
+
+    document 'person' => {
+        'name' => 'name',
+        'friends.@' => 'friend'
+    };
+
+    package main;
+
+    my $data = {
+        "name"   => "Anita Campbell-Green",
+        "friend" => [
+            { "name" => "Horace" },
+            { "name" => "Skinner" },
+            { "name" => "Alonzo" },
+            { "name" => "Frederick" },
+        ],
+    };
+
+    my $person = MyApp::Person->new;
+
+    unless ($person->validate_document(person => $data)) {
+        warn $person->errors_to_string if $person->error_count;
+    }
 
 =head1 AUTHOR
 
