@@ -167,7 +167,7 @@ Validation::Class::Document - Data Validation for Hierarchical Data
 
 =head1 VERSION
 
-version 0.000010
+version 0.000011
 
 =head1 SYNOPSIS
 
@@ -239,6 +239,9 @@ version 0.000010
 
 =head1 DESCRIPTION
 
+Validation::Class::Document inherits all functionality from L<Validation::Class>
+and implements additional abilities documented as follows.
+
 This module allows you to validate hierarchical structures using the
 L<Validation::Class> framework. This is an experimental yet highly promising
 approach toward the consistent processing of nested structures. The current
@@ -269,23 +272,23 @@ are a few general use-cases:
     }
 
     # select id to validate against the string rules
-    document 'foobar' =>
+    document 'foobar'  =>
         { 'id' => 'string' };
 
     # select name -> first_name/last_name to validate against the string rules
-    document 'foobar' =>
+    document 'foobar'  =>
         {'name.first_name' => 'string', 'name.last_name' => 'string'};
 
     # or
-    document 'foobar' =>
+    document 'foobar'  =>
         {'name.*_name' => 'string'};
 
     # select each element in friends to validate against the string rules
-    document 'foobar' =>
-        { 'friends.@' => 'string' };
+    document 'foobar'  =>
+        { 'friends.@'  => 'string' };
 
     # or select an element of a hashref in each element in friends to validate
-    document 'foobar' =>
+    document 'foobar'  =>
         { 'friends.@.name' => 'string' };
 
 The document declaration's keys should follow the aforementioned document
@@ -318,7 +321,7 @@ patterns. The following is an example of what that might look like.
 
     my $data = {
         "name"   => "Anita Campbell-Green",
-        "friend" => [
+        "friends" => [
             { "name" => "Horace" },
             { "name" => "Skinner" },
             { "name" => "Alonzo" },
