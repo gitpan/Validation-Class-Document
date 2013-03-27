@@ -33,11 +33,11 @@ sub doc { goto &document } sub document {
 
         my ($proto) = @_;
 
-        my $settings = $proto->configuration->settings;
+        my  $settings = $proto->configuration->settings;
 
-        my $documents  = $settings->{documents} ||= Validation::Class::Mapping->new;
+            $settings->{documents} ||= Validation::Class::Mapping->new;
 
-        $documents->add($name => $data);
+            $settings->{documents}->add($name => $data);
 
         return $proto;
 
@@ -48,7 +48,7 @@ sub doc { goto &document } sub document {
 
 sub document_validates { goto &validate_document } sub validate_document {
 
-    my ($self, $name, $data) = @_;
+    my ($self, $name, $data, $options) = @_;
 
     my $proto     = $self->prototype;
 
@@ -69,6 +69,8 @@ sub document_validates { goto &validate_document } sub validate_document {
     croak "The ($name) document does not contain any mappings and cannot ".
           "be validated against" unless keys %{$documents}
     ;
+
+    $options ||= {};
 
     for my  $key (keys %{$document}) {
 
@@ -107,29 +109,42 @@ sub document_validates { goto &validate_document } sub validate_document {
 
     for my $key (keys %{$_data}) {
 
+        my  $point = $key;
+            $point =~ s/\W/_/g;
+        my  $label = $key;
+            $label =~ s/\:/./g;
+
+        my  $match = 0;
+
         for my $regex (keys %{$document}) {
 
-            if (exists $_data->{$key}) {
+            if ($_data->{$key}) {
 
                 my  $field = $document->{$regex};
-                my  $point = $key;
-                    $point =~ s/\W/_/g;
-                my  $label = $key;
-                    $label =~ s/\:/./g;
 
                 if ($key =~ /^$regex$/) {
 
                     $proto->clone_field($field => $point, {label => $label});
+                    $proto->queue("+$point"); # queue and force requirement
 
                     $_dmap->{$key}   = 1;
                     $_pmap->{$point} = $key;
 
+                    $match = 1;
+
                 }
 
-                $proto->params->add($point => $_data->{$key});
-                $proto->queue("+$point"); # queue and force requirement
-
             }
+
+        }
+
+        $proto->params->add($point => $_data->{$key});
+
+        if ($options->{prune} && ! $match) {
+
+            delete $_data->{$key};
+
+            $proto->params->delete($point);
 
         }
 
@@ -167,7 +182,7 @@ Validation::Class::Document - Data Validation for Hierarchical Data
 
 =head1 VERSION
 
-version 0.000011
+version 0.000012
 
 =head1 SYNOPSIS
 
@@ -344,7 +359,11 @@ specified hierarchical data against the specified document declaration. This is
 extremely valuable for validating serialized messages passed between machines.
 This method requires two arguments, the name of the document declaration to be
 used, and the data to be validated which should be submitted in the form of a
-hashref.
+hashref. Additionally, you may submit options in the form of a hashref to
+further control the validation process. The following is an example of this.
+
+    # the prune option removes non-matching parameters (nodes)
+    my $boolean = $self->validate_document(foobar => $data, { prune => 1 });
 
 =head1 AUTHOR
 

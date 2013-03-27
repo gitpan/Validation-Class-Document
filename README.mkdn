@@ -4,7 +4,7 @@ Validation::Class::Document - Data Validation for Hierarchical Data
 
 # VERSION
 
-version 0.000011
+version 0.000012
 
 # SYNOPSIS
 
@@ -181,7 +181,11 @@ specified hierarchical data against the specified document declaration. This is
 extremely valuable for validating serialized messages passed between machines.
 This method requires two arguments, the name of the document declaration to be
 used, and the data to be validated which should be submitted in the form of a
-hashref.
+hashref. Additionally, you may submit options in the form of a hashref to
+further control the validation process. The following is an example of this.
+
+    # the prune option removes non-matching parameters (nodes)
+    my $boolean = $self->validate_document(foobar => $data, { prune => 1 });
 
 # AUTHOR
 
