@@ -34,11 +34,11 @@ use Test::More;
 
     my $documents = $class->prototype->settings->get('documents');
 
-    ok "Validation::Class::Mapping" eq ref $documents, "T documents registered as setting";
+    ok "HASH" eq ref $documents, "T documents hash registered as setting";
 
-    ok 1 == $documents->count, "T has 1 registered document";
+    ok 1 == keys %{$documents}, "T has 1 registered document";
 
-    my $user = $documents->get('user');
+    my $user = $documents->{user};
 
     ok 4 == keys %{$user}, "T user document has 3 mappings";
 

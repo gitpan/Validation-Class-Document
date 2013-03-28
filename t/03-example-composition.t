@@ -3,6 +3,13 @@ use strict;
 use warnings;
 use Test::More;
 
+BEGIN {
+
+    use FindBin;
+    use lib $FindBin::Bin . '/lib';
+
+}
+
 {
 
     use_ok 'Validation::Class::Document';
@@ -15,30 +22,10 @@ use Test::More;
 
     use Validation::Class::Document;
 
-    field  'state'  => { state => 1 };
-    field  'string' => { mixin => ':str' };
-
-    document 'location' => {
-        'id'       => 'string',
-        'type'     => 'string',
-        'name'     => 'string',
-        'company'  => 'string',
-        'address1' => 'string',
-        'address2' => 'string',
-        'city'     => 'string',
-        'state'    => 'state',
-        'zip'      => 'string'
-    };
-
-    document 'user' => {
-        'id'          => 'string',
-        'type'        => 'string',
-        'name'        => 'string',
-        'company'     => 'string',
-        'login'       => 'string',
-        'email'       => 'string',
-        'locations.@' => 'location'
-    };
+    set roles => [
+        'T::Document::User',
+        'T::Document::Location'
+    ];
 
     package main;
 
@@ -52,11 +39,11 @@ use Test::More;
 
     ok "HASH" eq ref $documents, "T documents hash registered as setting";
 
-    ok 2 == keys %{$documents}, "T has 1 registered document";
+    ok 2 == keys %{$documents}, "T has 2 registered document";
 
-    my $user = $documents->{user};
+    my $user = $documents->{'user'};
 
-    ok 7 == keys %{$user}, "T user document has 3 mappings";
+    ok 7 == keys %{$user}, "T user document has 6 mappings";
 
     can_ok $class, 'validate_document';
 
@@ -85,11 +72,12 @@ use Test::More;
     ok ! $class->validate_document(user => $data), "T document (user) not valid";
     ok $class->errors_to_string =~ /locations\.0\.state/, "T proper error message set";
 
-    $class->proto->settings->get('documents')->{location}->{state} = 'string';
+    $class->proto->settings->get('documents')->{'location'}->{state} = 'string';
 
     ok $class->validate_document(user => $data), "T document (user) validated";
 
     #warn $class->errors_to_string if $class->error_count;
+    #require Data::Dumper; die Data::Dumper::Dumper($documents);
 
 }
 

@@ -11,7 +11,8 @@ use Validation::Class::Exporter;
 use Validation::Class::Mapping;
 
 use Hash::Flatten 'flatten', 'unflatten';
-use Carp 'croak';
+use Carp  'croak';
+use Clone 'clone';
 
 Validation::Class::Exporter->apply_spec(
     routines => ['doc', 'document', 'validate_document', 'document_validates'],
@@ -35,9 +36,9 @@ sub doc { goto &document } sub document {
 
         my  $settings = $proto->configuration->settings;
 
-            $settings->{documents} ||= Validation::Class::Mapping->new;
+            $settings->{documents} ||= {};
 
-            $settings->{documents}->add($name => $data);
+            $settings->{documents}->{$name} = $data;
 
         return $proto;
 
@@ -54,17 +55,17 @@ sub document_validates { goto &validate_document } sub validate_document {
 
     my $fields    = { map {$_ => 1} ($proto->fields->keys) };
 
-    my $documents = $proto->settings->get('documents');
+    my $documents = clone $proto->settings->get('documents');
 
     croak "Please supply a registered document name to validate against"
         unless $name
     ;
 
     croak "The ($name) document is not registered and cannot be validated against"
-        unless $name && $documents->has($name)
+        unless $name && exists $documents->{$name}
     ;
 
-    my $document = $documents->get($name);
+    my $document = $documents->{$name};
 
     croak "The ($name) document does not contain any mappings and cannot ".
           "be validated against" unless keys %{$documents}
@@ -74,8 +75,8 @@ sub document_validates { goto &validate_document } sub validate_document {
 
     for my  $key (keys %{$document}) {
 
-        $document->{$key} = $documents->get($document->{$key}) if
-            $document->{$key} && $documents->has($document->{$key}) &&
+        $document->{$key} = $documents->{$document->{$key}} if
+            $document->{$key} && exists $documents->{$document->{$key}} &&
             ! $proto->fields->has($document->{$key})
         ;
 
@@ -182,7 +183,7 @@ Validation::Class::Document - Data Validation for Hierarchical Data
 
 =head1 VERSION
 
-version 0.000012
+version 0.000013
 
 =head1 SYNOPSIS
 
