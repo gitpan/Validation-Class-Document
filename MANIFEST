@@ -13,5 +13,6 @@ t/02-synopsis.t
 t/03-example-composition.t
 t/03-example-nested.t
 t/03-example-pruning.t
+t/03-example-reporting.t
 t/lib/T/Document/Location.pm
 t/lib/T/Document/User.pm

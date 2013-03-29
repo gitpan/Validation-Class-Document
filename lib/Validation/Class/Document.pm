@@ -105,6 +105,7 @@ sub document_validates { goto &validate_document } sub validate_document {
 
     my $_dmap = {};
     my $_pmap = {};
+    my $_xmap = {};
 
     my $_data = flatten $data;
 
@@ -126,7 +127,6 @@ sub document_validates { goto &validate_document } sub validate_document {
                 if ($key =~ /^$regex$/) {
 
                     $proto->clone_field($field => $point, {label => $label});
-                    $proto->queue("+$point"); # queue and force requirement
 
                     $_dmap->{$key}   = 1;
                     $_pmap->{$point} = $key;
@@ -139,26 +139,59 @@ sub document_validates { goto &validate_document } sub validate_document {
 
         }
 
-        $proto->params->add($point => $_data->{$key});
+        $_xmap->{$point} = $key;
+
+        # register node as a parameter
+
+        $proto->params->add($point => $_data->{$key})
+            unless $options->{prune} && ! $match
+        ;
+
+        # queue and force requirement
+
+        $proto->queue("+$point")
+            unless $options->{prune} && ! $match
+        ;
+
+        # prune unnecessary nodes
 
         if ($options->{prune} && ! $match) {
 
             delete $_data->{$key};
 
-            $proto->params->delete($point);
-
         }
 
     }
 
-    my $result = $proto->validate($self);
+    $proto->validate($self);
+
     my @errors = $proto->get_errors;
+
+    for (sort @errors) {
+
+        my ($message) = $_ =~ /field (\w+) does not exist/;
+
+        next unless $message;
+
+        $message = $_xmap->{$message};
+
+        next unless $message;
+
+        $message  =~ s/\W/./g;
+
+        # re-format unknown parameter errors
+        $_ = "The parameter $message was not expected and could not be validated";
+
+    }
 
     $_dmap = unflatten $_dmap;
 
     while (my($point, $key) = each(%{$_pmap})) {
+
         $_data->{$key} = $proto->params->get($point); # prepare data
+
         $proto->fields->delete($point) unless $fields->{$point}; # reap clones
+
     }
 
     $proto->reset_fields;
@@ -167,7 +200,7 @@ sub document_validates { goto &validate_document } sub validate_document {
 
     $_[2] = unflatten $_data if defined $_[2]; # restore data
 
-    return $result;
+    return $proto->is_valid;
 
 }
 
@@ -183,7 +216,7 @@ Validation::Class::Document - Data Validation for Hierarchical Data
 
 =head1 VERSION
 
-version 0.000013
+version 0.000014
 
 =head1 SYNOPSIS
 
@@ -360,8 +393,12 @@ specified hierarchical data against the specified document declaration. This is
 extremely valuable for validating serialized messages passed between machines.
 This method requires two arguments, the name of the document declaration to be
 used, and the data to be validated which should be submitted in the form of a
-hashref. Additionally, you may submit options in the form of a hashref to
-further control the validation process. The following is an example of this.
+hashref. The following is an example of this technique:
+
+    my $boolean = $self->validate_document(foobar => $data);
+
+Additionally, you may submit options in the form of a hashref to further control
+the validation process. The following is an example of this technique:
 
     # the prune option removes non-matching parameters (nodes)
     my $boolean = $self->validate_document(foobar => $data, { prune => 1 });

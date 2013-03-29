@@ -122,7 +122,9 @@ use Test::More;
         },
     };
 
-    ok !$class->validate_document(company => $person), "T2 document (company) did not validate";
+    ok ! $class->validate_document(company => $person), "T2 document (company) did not validate";
+
+    # warn $class->errors_to_string("\n");
 
 }
 
