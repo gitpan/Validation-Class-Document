@@ -2,9 +2,161 @@ NAME
     Validation::Class::Document - Data Validation for Hierarchical Data
 
 VERSION
-    version 0.000014
+    version 0.000015
 
 SYNOPSIS
+        package MyApp::Person;
+
+        use Validation::Class::Document;
+
+        my $person = MyApp::Person->new;
+
+        # rules
+
+        my $schema = {
+            'id'                        => {mixin => [':num'], max_length => 4},
+            'name'                      => {mixin => [':str'], min_length => 2},
+            'title'                     => {mixin => [':str'], min_length => 5},
+            'company.name'              => {mixin => [':str'], min_length => 2},
+            'company.tags.@'            => {mixin => [':str'], min_length => 2},
+            'company.super*.name'       => {mixin => [':str'], min_length => 2},
+            'company.super*.rating.@.*' => {mixin => [':str'], },
+        };
+
+        # data
+
+        my $data = {
+            "id"      => "1234-ABC",
+            "name"    => "Anita Campbell-Green",
+            "title"   => "Designer",
+            "company" => {
+                "name"       => "House of de Vil",
+                "supervisor" => {
+                    "name"   => "Cruella de Vil",
+                    "rating" => [
+                        {   "support"  => -9,
+                            "guidance" => -9
+                        }
+                    ]
+                },
+                "tags" => [
+                    "evil",
+                    "cruelty",
+                    "dogs"
+                ]
+            },
+        };
+
+        unless ($person->validate_document($schema => $data)) {
+            warn $person->errors_to_string if $person->error_count;
+        }
+
+DESCRIPTION
+    Validation::Class::Document inherits all functionality from
+    Validation::Class and implements additional abilities documented as
+    follows.
+
+    This module allows you to validate hierarchical structures using the
+    Validation::Class framework. This is an experimental yet highly
+    promising approach toward the consistent processing of nested
+    structures. The current interface is not expected to change. This module
+    was inspired by MooseX::Validation::Doctypes. Gone are the days of data
+    submitted to an application in key/value form and especially in regards
+    to the increasing demand for communication between applications,
+    serializing and transmitting structured data over a network connection.
+    Note! All matching data points will be validated forcefully (i.e.
+    matching data points are required to have a value defined).
+
+OVERVIEW
+    Validation::Class::Document exports the document (or dom) keyword which
+    allows you to pre-define/configure your path matching rules for your
+    data structure. The "path matching rules", which is actually a custom
+    object notation, referred to as the document notation, can be thought of
+    as a kind-of simplified regular expression which is executed against the
+    flattened data structure. The following are a few general use-cases:
+
+        # given this JSON data structure
+        {
+            "id": "1234-A",
+            "name": {
+                "first_name" : "Bob",
+                "last_name"  : "Smith",
+             },
+            "title": "CIO",
+            "friends" : [],
+        }
+
+        # select id to validate against the string rules
+        document 'foobar'  =>
+            { 'id' => 'string' };
+
+        # select name -> first_name/last_name to validate against the string rules
+        document 'foobar'  =>
+            {'name.first_name' => 'string', 'name.last_name' => 'string'};
+
+        # or
+        document 'foobar'  =>
+            {'name.*_name' => 'string'};
+
+        # select each element in friends to validate against the string rules
+        document 'foobar'  =>
+            { 'friends.@'  => 'string' };
+
+        # or select an element of a hashref in each element in friends to validate
+        document 'foobar'  =>
+            { 'friends.@.name' => 'string' };
+
+    The document declaration's keys should follow the aforementioned
+    document notation schema and it's values should be strings which
+    correspond to the names of fields (or other document declarations) that
+    will be used to preform the data validation. It is possible to combine
+    document declarations to validate hierarchical data that contains data
+    structures matching one or more document patterns. The following is an
+    example of what that might look like.
+
+        package MyApp::Person;
+
+        use Validation::Class::Document;
+
+        # data validation rule
+        field  'name' => {
+            mixin      => [':str'],
+            pattern    => qr/^[A-Za-z ]+$/,
+            max_length => 20,
+        };
+
+        # data validation map / document notation schema
+        document 'friend' => {
+            'name' => 'name'
+        };
+
+        # data validation map / document notation schema
+        document 'person' => {
+            'name' => 'name',
+            'friends.@' => 'friend'
+        };
+
+        package main;
+
+        my $data = {
+            "name"   => "Anita Campbell-Green",
+            "friends" => [
+                { "name" => "Horace" },
+                { "name" => "Skinner" },
+                { "name" => "Alonzo" },
+                { "name" => "Frederick" },
+            ],
+        };
+
+        my $person = MyApp::Person->new;
+
+        unless ($person->validate_document(person => $data)) {
+            warn $person->errors_to_string if $person->error_count;
+        }
+
+    Alternatively, the following is a more verbose data validation class
+    using traditional styling and configuration.
+
         package MyApp::Person;
 
         use Validation::Class::Document;
@@ -71,104 +223,6 @@ SYNOPSIS
             warn $person->errors_to_string if $person->error_count;
         }
 
-DESCRIPTION
-    Validation::Class::Document inherits all functionality from
-    Validation::Class and implements additional abilities documented as
-    follows.
-
-    This module allows you to validate hierarchical structures using the
-    Validation::Class framework. This is an experimental yet highly
-    promising approach toward the consistent processing of nested
-    structures. The current interface is not expected to change. This module
-    was inspired by MooseX::Validation::Doctypes. Gone are the days of data
-    submitted to an application in key/value form and especially in regards
-    to the increasing demand for communication between applications,
-    serializing and transmitting structured data over a network connection.
-
-OVERVIEW
-    Validation::Class::Document exports the document (or dom) keyword which
-    allows you to pre-define/configure your path matching rules for your
-    data structure. The "path matching rules", which is actually a custom
-    object notation, referred to as the document notation, can be thought of
-    as a kind-of simplified regular expression which is executed against the
-    flattened data structure. The following are a few general use-cases:
-
-        # given the data structure
-        {
-            "id": "1234-A",
-            "name": {
-                "first_name" : "Bob",
-                "last_name"  : "Smith",
-             },
-            "title": "CIO",
-            "friends" : [],
-        }
-
-        # select id to validate against the string rules
-        document 'foobar'  =>
-            { 'id' => 'string' };
-
-        # select name -> first_name/last_name to validate against the string rules
-        document 'foobar'  =>
-            {'name.first_name' => 'string', 'name.last_name' => 'string'};
-
-        # or
-        document 'foobar'  =>
-            {'name.*_name' => 'string'};
-
-        # select each element in friends to validate against the string rules
-        document 'foobar'  =>
-            { 'friends.@'  => 'string' };
-
-        # or select an element of a hashref in each element in friends to validate
-        document 'foobar'  =>
-            { 'friends.@.name' => 'string' };
-
-    The document declaration's keys should follow the aforementioned
-    document notation scheme and it's values should be strings which
-    correspond to the names of fields (or other document declarations) that
-    will be used to preform the data validation. It is possible to combine
-    document declarations to validate hierarchical data that contains data
-    structures matching one or more document patterns. The following is an
-    example of what that might look like.
-
-        package MyApp::Person;
-
-        use Validation::Class::Document;
-
-        field  'name' => {
-            mixin      => [':str'],
-            pattern    => qr/^[A-Za-z ]+$/,
-            max_length => 20,
-        };
-
-        document 'friend' => {
-            'name' => 'name'
-        };
-
-        document 'person' => {
-            'name' => 'name',
-            'friends.@' => 'friend'
-        };
-
-        package main;
-
-        my $data = {
-            "name"   => "Anita Campbell-Green",
-            "friends" => [
-                { "name" => "Horace" },
-                { "name" => "Skinner" },
-                { "name" => "Alonzo" },
-                { "name" => "Frederick" },
-            ],
-        };
-
-        my $person = MyApp::Person->new;
-
-        unless ($person->validate_document(person => $data)) {
-            warn $person->errors_to_string if $person->error_count;
-        }
-
 METHODS
   validate_document
     The validate_document method (or document_validates) is used to validate
@@ -187,6 +241,10 @@ METHODS
 
         # the prune option removes non-matching parameters (nodes)
         my $boolean = $self->validate_document(foobar => $data, { prune => 1 });
+
+    Additionally, to support the validation of ad-hoc specifications, you
+    may pass this method two hashrefs, the first being the document notation
+    schema, and the second being the hierarchical data you wish to validate.
 
 AUTHOR
     Al Newkirk <anewkirk@ana.io>

@@ -1,5 +1,9 @@
 Revision history for the Perl library Validation-Class-Document
 
+0.000015  2013-04-04
+
+  - Support for Ad-Hoc document notation schemas
+
 0.000001  2013-03-21
 
   - Proof-of-Concept Release

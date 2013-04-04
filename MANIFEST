@@ -8,6 +8,7 @@ README.mkdn
 lib/Validation/Class/Document.pm
 t/00-load.t
 t/01-export-ok.t
+t/02-synopsis-adhoc.t
 t/02-synopsis-filtering.t
 t/02-synopsis.t
 t/03-example-composition.t
