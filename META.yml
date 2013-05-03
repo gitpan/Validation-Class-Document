@@ -6,7 +6,7 @@ build_requires: {}
 configure_requires:
   ExtUtils::MakeMaker: 6.30
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 4.300030, CPAN::Meta::Converter version 2.120921'
+generated_by: 'Dist::Zilla version 4.300034, CPAN::Meta::Converter version 2.130880'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -15,9 +15,9 @@ name: Validation-Class-Document
 requires:
   Clone: 0
   Hash::Flatten: 0
-  Validation::Class: 7.900041
+  Validation::Class: 7.900047
 resources:
   bugtracker: https://github.com/alnewkirk/Validation-Class-Document/issues
   homepage: https://github.com/alnewkirk/Validation-Class-Document
   repository: git://github.com/alnewkirk/Validation-Class-Document.git
-version: 0.000015
+version: 0.000016
